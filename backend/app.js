@@ -4,7 +4,16 @@ import resumeRoutes from "./routes/resume.js";
 import analysisRoutes from "./routes/analysis.js";
 
 const app = express();
-app.use(cors({ origin: "http://localhost:8080" }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:8080",
+      "https://resumeparser-production-02e4.up.railway.app",
+      "http://resumeparser-production-02e4.up.railway.app",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Simple in-memory storage for testing

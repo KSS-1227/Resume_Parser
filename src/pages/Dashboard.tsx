@@ -75,7 +75,7 @@ const Dashboard = () => {
       formData.append('resume', resumeFile);
       
       console.log("Uploading resume to backend...");
-      const uploadRes = await fetch('http://localhost:3000/api/resume/upload', {
+      const uploadRes = await fetch('http://resumeparser-production-02e4.up.railway.app/api/resume/upload', {
         method: 'POST',
         body: formData,
       });
@@ -90,7 +90,7 @@ const Dashboard = () => {
 
       // Start analysis with either URL or manual description
       console.log("Starting analysis with resumeId:", resumeId);
-      const analysisRes = await fetch('http://localhost:3000/api/analysis/analyze', {
+      const analysisRes = await fetch('http://resumeparser-production-02e4.up.railway.app/api/analysis/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
