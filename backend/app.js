@@ -20,6 +20,11 @@ app.use(express.json());
 global.resumes = new Map();
 global.analyses = new Map();
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "Backend is running" });
+});
+
 app.use("/api/resume", resumeRoutes);
 app.use("/api/analysis", analysisRoutes);
 

@@ -14,7 +14,7 @@ export async function uploadResume(req, res) {
       if (originalname && originalname.toLowerCase().endsWith(".pdf")) {
         try {
           // Use pdf-parse with error handling
-          const pdfParse = require("pdf-parse");
+          const pdfParse = (await import("pdf-parse")).default;
           const pdfData = await pdfParse(dataBuffer);
           resumeText = pdfData.text;
           console.log(
