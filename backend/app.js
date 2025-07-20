@@ -1,0 +1,17 @@
+import express from "express";
+import cors from "cors";
+import resumeRoutes from "./routes/resume.js";
+import analysisRoutes from "./routes/analysis.js";
+
+const app = express();
+app.use(cors({ origin: "http://localhost:8080" }));
+app.use(express.json());
+
+// Simple in-memory storage for testing
+global.resumes = new Map();
+global.analyses = new Map();
+
+app.use("/api/resume", resumeRoutes);
+app.use("/api/analysis", analysisRoutes);
+
+export default app;

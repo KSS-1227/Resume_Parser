@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+spacy
+scikit-learn
+numpy
+pydantic
+PyMuPDF
+python-docx
+beautifulsoup4
+requests
+sentence-transformers
+nltk
+jinja2
+markdown
