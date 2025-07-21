@@ -44,4 +44,21 @@ if (!fs.existsSync(uploadsDir)) {
   console.log("📁 Created uploads directory");
 }
 
+// Check if frontend build exists, if not, build it
+console.log("🔍 Checking frontend build...");
+const frontendBuildPath = path.join(backendDir, "../dist");
+if (!fs.existsSync(frontendBuildPath)) {
+  console.log("⚠️  Frontend build not found, building...");
+  try {
+    process.chdir(path.join(backendDir, ".."));
+    execSync("npm run build", { stdio: "inherit" });
+    console.log("✅ Frontend built successfully");
+  } catch (buildError) {
+    console.error("❌ Failed to build frontend:", buildError.message);
+    process.exit(1);
+  }
+} else {
+  console.log("✅ Frontend build found");
+}
+
 console.log("🎉 Backend build completed successfully!");

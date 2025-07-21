@@ -1,1 +1,1 @@
-web: cd backend && npm run build && node startup.js 
+web: npm run build && cd backend && npm run build && node startup.js 
