@@ -2,6 +2,12 @@ import dotenv from "dotenv";
 dotenv.config();
 import app from "./app.js";
 
+// Log environment information for debugging
+console.log("🔍 Environment check:");
+console.log(`📡 NODE_ENV: ${process.env.NODE_ENV || "development"}`);
+console.log(`🌐 PORT: ${process.env.PORT || "3000"}`);
+console.log(`📁 CWD: ${process.cwd()}`);
+
 const PORT = process.env.PORT || 3000;
 
 // Add error handling for the server

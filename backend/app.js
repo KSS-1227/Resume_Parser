@@ -44,6 +44,8 @@ app.get("/", (req, res) => {
     status: "ok",
     message: "Job Hunt Insights Engine API",
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    port: process.env.PORT || 3000,
     endpoints: {
       health: "/health",
       resume: "/api/resume",
