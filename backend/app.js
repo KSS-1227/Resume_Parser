@@ -27,9 +27,15 @@ app.use(express.json());
 global.resumes = new Map();
 global.analyses = new Map();
 
-// Health check endpoint
+// Health check endpoint for Railway
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend is running" });
+  res.json({
+    status: "ok",
+    message: "Backend is running",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    port: process.env.PORT || 3000,
+  });
 });
 
 // Root endpoint for debugging
@@ -37,6 +43,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     message: "Job Hunt Insights Engine API",
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: "/health",
       resume: "/api/resume",
