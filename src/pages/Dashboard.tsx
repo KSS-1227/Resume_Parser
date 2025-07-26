@@ -32,6 +32,8 @@ interface AnalysisResult {
   matching_skills?: string[];
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const Dashboard = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobUrl, setJobUrl] = useState("");
@@ -53,44 +55,63 @@ const Dashboard = () => {
   };
 
   const handleAnalysis = async () => {
-    if (!resumeFile || (!jobUrl && !jobDescription)) {
+    if (!resumeFile) {
       toast({
-        title: "Missing information",
-        description: "Please upload your resume and provide either a job URL or job description",
+        title: "No resume uploaded",
+        description: "Please upload a resume first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!useManualDescription && !jobUrl.trim()) {
+      toast({
+        title: "Missing job information",
+        description: "Please provide either a job URL or manual description",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (useManualDescription && !jobDescription.trim()) {
+      toast({
+        title: "Missing job description",
+        description: "Please provide a job description",
         variant: "destructive",
       });
       return;
     }
 
     setIsAnalyzing(true);
-
+    
     try {
-      console.log("=== STARTING ANALYSIS ===");
-      console.log("Resume file:", resumeFile.name);
-      console.log("Job URL:", jobUrl);
-      console.log("Using manual description:", useManualDescription);
+      console.log("Starting analysis with API URL:", API_BASE_URL);
       
       // Upload resume
       const formData = new FormData();
       formData.append('resume', resumeFile);
       
-      console.log("Uploading resume to backend...");
-      const uploadRes = await fetch('http://resumeparser-production-02e4.up.railway.app/api/resume/upload', {
+      console.log("Uploading resume to:", `${API_BASE_URL}/api/resume/upload`);
+      
+      const uploadRes = await fetch(`${API_BASE_URL}/api/resume/upload`, {
         method: 'POST',
         body: formData,
       });
       
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload resume');
+        const errorText = await uploadRes.text();
+        console.error("Upload failed:", uploadRes.status, errorText);
+        throw new Error(`Upload failed: ${uploadRes.status} ${errorText}`);
       }
       
       const uploadData = await uploadRes.json();
       console.log("Upload response:", uploadData);
       const { resumeId } = uploadData;
 
-      // Start analysis with either URL or manual description
-      console.log("Starting analysis with resumeId:", resumeId);
-      const analysisRes = await fetch('http://resumeparser-production-02e4.up.railway.app/api/analysis/analyze', {
+      // Analyze resume
+      console.log("Starting analysis for resumeId:", resumeId);
+      
+      const analysisRes = await fetch(`${API_BASE_URL}/api/analysis/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,9 +124,11 @@ const Dashboard = () => {
       });
       
       if (!analysisRes.ok) {
-        throw new Error('Failed to analyze resume');
+        const errorText = await analysisRes.text();
+        console.error("Analysis failed:", analysisRes.status, errorText);
+        throw new Error(`Analysis failed: ${analysisRes.status} ${errorText}`);
       }
-      
+        
       const analysisData = await analysisRes.json();
       console.log("Analysis response:", analysisData);
       
@@ -131,9 +154,21 @@ const Dashboard = () => {
       
     } catch (error) {
       console.error('Analysis error:', error);
+      
+      // More specific error messages
+      let errorMessage = "There was an error analyzing your resume.";
+      
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = "Cannot connect to the backend server. Make sure the backend is running on http://localhost:3000";
+      } else if (error.message.includes('Upload failed')) {
+        errorMessage = "Failed to upload resume. Please try again.";
+      } else if (error.message.includes('Analysis failed')) {
+        errorMessage = "Failed to analyze resume. Please try again.";
+      }
+      
       toast({
         title: "Analysis failed",
-        description: "There was an error analyzing your resume. Please check your internet connection and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -150,9 +185,18 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900">Resume Analysis Dashboard</h1>
             <p className="text-gray-600 mt-1">Upload your resume and job link to get AI-powered insights</p>
           </div>
-          <Button variant="outline" onClick={() => window.location.href = "/"}>
-            Sign Out
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => window.location.href = "/job-recommendations"}
+              className="flex items-center gap-2"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Find Best Opportunities
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = "/"}>
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Upload Section */}
@@ -282,3 +326,6 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
+

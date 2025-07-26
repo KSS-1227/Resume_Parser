@@ -12,6 +12,9 @@ import nltk
 import io
 from typing import List, Dict, Any, Optional, Union
 
+# Import job recommendations router
+from job_recommendations import router as job_recommendations_router
+
 # Download required NLTK data
 try:
     nltk.data.find('tokenizers/punkt')
@@ -23,6 +26,9 @@ except LookupError:
     nltk.download('stopwords')
 
 app = FastAPI()
+
+# Include job recommendations router
+app.include_router(job_recommendations_router)
 
 # Load sentence transformer model for semantic similarity
 try:

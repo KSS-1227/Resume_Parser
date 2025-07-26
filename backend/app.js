@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import resumeRoutes from "./routes/resume.js";
 import analysisRoutes from "./routes/analysis.js";
+import jobsRoutes from "./routes/jobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,13 +12,27 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(
   cors({
-    origin: [
-      "http://localhost:8080",
-      "https://resumeparser-production-02e4.up.railway.app",
-      "http://resumeparser-production-02e4.up.railway.app",
-      "https://web-production-36b3f.up.railway.app",
-      "http://web-production-36b3f.up.railway.app",
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        "http://localhost:8080",
+        "http://192.168.0.100:8080",
+        "http://192.168.0.100:3000",
+        "https://resumeparser-production-02e4.up.railway.app",
+        "http://resumeparser-production-02e4.up.railway.app",
+        "https://web-production-36b3f.up.railway.app",
+        "http://web-production-36b3f.up.railway.app",
+      ];
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log("CORS blocked origin:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -41,6 +56,7 @@ app.get("/", (req, res) => {
       health: "/health",
       resume: "/api/resume",
       analysis: "/api/analysis",
+      jobs: "/api/jobs",
     },
   });
 });
@@ -48,6 +64,7 @@ app.get("/", (req, res) => {
 // API routes
 app.use("/api/resume", resumeRoutes);
 app.use("/api/analysis", analysisRoutes);
+app.use("/api/jobs", jobsRoutes);
 
 // Serve static files from the React app build
 app.use(express.static(path.join(__dirname, "../dist")));
