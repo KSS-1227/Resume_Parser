@@ -5,7 +5,7 @@ export async function uploadResume(req, res) {
     const { originalname, filename, path } = req.file;
     let resumeText = "";
 
-    // Simple approach: read the file and extract text
+    // Enhanced text extraction from uploaded files
     try {
       console.log("Processing resume file:", path);
       const dataBuffer = fs.readFileSync(path);
@@ -23,41 +23,68 @@ export async function uploadResume(req, res) {
           );
         } catch (pdfError) {
           console.error(
-            "PDF parsing failed, using filename as fallback:",
+            "PDF parsing failed, trying alternative method:",
             pdfError.message
           );
-          // Use filename and add common skills for testing
-          resumeText = `Resume: ${originalname}
-          
-Skills typically found in software developer resumes:
-JavaScript, HTML, CSS, React, Node.js, Python, Git, SQL, MongoDB, Express.js, Bootstrap, API Testing, REST API
 
-Experience: Software development experience with modern web technologies
-Education: Computer Science or related field
-Projects: Web applications and software projects`;
+          // Try alternative PDF parsing
+          try {
+            const pdf2pic = (await import("pdf2pic")).default;
+            // This is a fallback - in a real implementation, you'd use a different PDF parser
+            resumeText = `Resume: ${originalname} - PDF parsing failed, please try a different format or contact support.`;
+          } catch (altError) {
+            console.error(
+              "Alternative PDF parsing also failed:",
+              altError.message
+            );
+            resumeText = `Resume: ${originalname} - Unable to extract text from PDF. Please ensure the file is not corrupted or password-protected.`;
+          }
         }
+      } else if (originalname && originalname.toLowerCase().endsWith(".docx")) {
+        try {
+          // Use mammoth for DOCX files
+          const mammoth = (await import("mammoth")).default;
+          const result = await mammoth.extractRawText({ path });
+          resumeText = result.value;
+          console.log(
+            "Successfully extracted DOCX text, length:",
+            resumeText.length
+          );
+        } catch (docxError) {
+          console.error("DOCX parsing failed:", docxError.message);
+          resumeText = `Resume: ${originalname} - Unable to extract text from DOCX file.`;
+        }
+      } else if (originalname && originalname.toLowerCase().endsWith(".txt")) {
+        // For text files, read directly
+        resumeText = dataBuffer.toString("utf8");
+        console.log(
+          "Successfully extracted TXT text, length:",
+          resumeText.length
+        );
       } else {
-        // For non-PDF files, create text based on filename
-        resumeText = `Resume: ${originalname}
-        
-Skills typically found in software developer resumes:
-JavaScript, HTML, CSS, React, Node.js, Python, Git, SQL, MongoDB, Express.js, Bootstrap, API Testing, REST API
+        // For other file types, try to read as text
+        try {
+          resumeText = dataBuffer.toString("utf8");
+          console.log(
+            "Extracted text from unknown file type, length:",
+            resumeText.length
+          );
+        } catch (textError) {
+          console.error("Text extraction failed:", textError.message);
+          resumeText = `Resume: ${originalname} - Unable to extract text from this file format. Please use PDF, DOCX, or TXT format.`;
+        }
+      }
 
-Experience: Software development experience with modern web technologies
-Education: Computer Science or related field
-Projects: Web applications and software projects`;
+      // Validate that we got meaningful text
+      if (!resumeText || resumeText.length < 50) {
+        console.warn("Extracted text is too short, using fallback");
+        resumeText = `Resume: ${originalname} - Text extraction produced insufficient content. Please ensure the file contains readable text.`;
       }
 
       console.log("Final resume text preview:", resumeText.substring(0, 200));
     } catch (fileError) {
       console.error("File reading error:", fileError);
-      // Ultimate fallback
-      resumeText = `Resume: ${originalname}
-      
-Skills: JavaScript, HTML, CSS, React, Node.js, Python, Git, SQL, MongoDB, Express.js, Bootstrap, API Testing, REST API
-Experience: Software development experience
-Education: Computer Science or related field
-Projects: Web applications and software projects`;
+      resumeText = `Resume: ${originalname} - File could not be read. Please check the file format and try again.`;
     }
 
     const resumeId = Date.now().toString();
