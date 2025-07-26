@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import re
 
-# Import functions from main.py
-from main import extract_skills, calculate_semantic_similarity
+# Import functions from utils.py
+from utils import extract_skills, calculate_semantic_similarity
 
 router = APIRouter()
 

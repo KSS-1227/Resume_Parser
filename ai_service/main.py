@@ -7,10 +7,12 @@ import fitz
 from docx import Document
 import requests
 from bs4 import BeautifulSoup
-from sentence_transformers import SentenceTransformer
 import nltk
 import io
 from typing import List, Dict, Any, Optional, Union
+
+# Import shared functions from utils
+from utils import extract_skills, calculate_semantic_similarity
 
 # Import job recommendations router
 from job_recommendations import router as job_recommendations_router
@@ -30,11 +32,7 @@ app = FastAPI()
 # Include job recommendations router
 app.include_router(job_recommendations_router)
 
-# Load sentence transformer model for semantic similarity
-try:
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-except:
-    model = None
+
 
 class AnalysisRequest(BaseModel):
     resume_text: str
@@ -321,81 +319,7 @@ def extract_education(text: str) -> List[str]:
     
     return education
 
-def calculate_semantic_similarity(text1: str, text2: str) -> float:
-    """Calculate semantic similarity using sentence transformers"""
-    if not model:
-        return 0.0
-    
-    try:
-        embeddings = model.encode([text1, text2])
-        similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-        return float(similarity)
-    except:
-        return 0.0
 
-def extract_skills(text: str) -> List[str]:
-    # A comprehensive set of skills from various fields
-    skills_db = [
-        # Programming Languages
-        "javascript", "java", "python", "c++", "c#", "php", "ruby", "go", "rust", "swift", "kotlin", "scala", "r", "matlab", "perl", "bash", "powershell",
-        
-        # Web Technologies
-        "html", "css", "react", "angular", "vue", "node.js", "express", "django", "flask", "spring", "laravel", "asp.net", "jquery", "bootstrap", "sass", "less", "webpack", "babel",
-        
-        # Databases
-        "sql", "mysql", "postgresql", "mongodb", "redis", "oracle", "sqlite", "mariadb", "cassandra", "elasticsearch", "dynamodb", "firebase",
-        
-        # Cloud & DevOps
-        "aws", "azure", "gcp", "docker", "kubernetes", "jenkins", "git", "github", "gitlab", "bitbucket", "terraform", "ansible", "chef", "puppet", "vagrant",
-        
-        # Data Science & AI
-        "machine learning", "deep learning", "tensorflow", "pytorch", "scikit-learn", "pandas", "numpy", "matplotlib", "seaborn", "jupyter", "spark", "hadoop", "kafka", "airflow",
-        
-        # Mobile Development
-        "android", "ios", "react native", "flutter", "xamarin", "ionic", "cordova", "swift", "kotlin", "objective-c",
-        
-        # Design & UX
-        "adobe photoshop", "adobe illustrator", "figma", "sketch", "ux", "ui", "graphic design", "indesign", "canva", "wireframing", "prototyping", "user research", "usability testing",
-        
-        # Marketing & Business
-        "seo", "content marketing", "social media", "facebook ads", "google ads", "email marketing", "copywriting", "branding", "market research", "analytics", "adwords", "campaign management", "crm", "salesforce",
-        
-        # Business & Management
-        "project management", "scrum", "agile", "kanban", "leadership", "team management", "budgeting", "strategic planning", "negotiation", "sales", "customer service", "business analysis",
-        
-        # Finance & Accounting
-        "accounting", "bookkeeping", "excel", "financial analysis", "forecasting", "tax", "auditing", "payroll", "quickbooks", "investment", "risk management", "sap", "oracle financials",
-        
-        # Healthcare
-        "patient care", "medical records", "emr", "nursing", "phlebotomy", "medication administration", "healthcare management", "clinical research", "epic", "cerner",
-        
-        # Education
-        "teaching", "curriculum development", "lesson planning", "student assessment", "classroom management", "online learning", "lms", "blackboard", "canvas", "moodle",
-        
-        # Soft Skills
-        "communication", "teamwork", "problem solving", "adaptability", "creativity", "time management", "critical thinking", "organization", "attention to detail", "leadership", "collaboration", "presentation", "public speaking",
-        
-        # Tools & Platforms
-        "api", "rest api", "graphql", "microservices", "ci/cd", "jenkins", "travis ci", "circleci", "github actions", "vercel", "netlify", "heroku", "digitalocean", "linode",
-        
-        # Testing & Quality
-        "unit testing", "integration testing", "test automation", "selenium", "cypress", "jest", "junit", "pytest", "quality assurance", "qa", "manual testing", "automated testing",
-        
-        # Security
-        "cybersecurity", "penetration testing", "ethical hacking", "security analysis", "vulnerability assessment", "incident response", "compliance", "gdpr", "hipaa", "pci dss",
-        
-        # Networking & Infrastructure
-        "networking", "cisco", "vmware", "hyper-v", "active directory", "dns", "dhcp", "vpn", "firewall", "load balancing", "high availability", "disaster recovery"
-    ]
-    
-    found_skills = []
-    text_lower = text.lower()
-    
-    for skill in skills_db:
-        if skill in text_lower:
-            found_skills.append(skill)
-    
-    return found_skills
 
 def calculate_skill_match(resume_skills: List[str], job_skills: List[str]) -> float:
     """Calculate skill match percentage"""
