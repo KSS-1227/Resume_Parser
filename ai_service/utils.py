@@ -144,6 +144,27 @@ def extract_skills(text: str) -> List[str]:
     print(f"Text preview: {text[:200]}...")
     print(f"Found skills: {unique_skills}")
     
+    # Additional debugging for problematic skills
+    problematic_skills = ["C#", "Go", "R"]
+    for skill in problematic_skills:
+        if skill in unique_skills:
+            print(f"⚠️  WARNING: {skill} detected in text. Checking why...")
+            skill_lower = skill.lower()
+            if re.search(r'\b' + re.escape(skill_lower) + r'\b', text_lower):
+                print(f"   ✓ {skill} found with word boundaries")
+            elif skill_lower in text_lower:
+                print(f"   ⚠️  {skill} found as substring - this might be a false positive")
+                # Show the context around the match
+                import re
+                matches = re.finditer(re.escape(skill_lower), text_lower)
+                for match in matches:
+                    start = max(0, match.start() - 20)
+                    end = min(len(text), match.end() + 20)
+                    context = text[start:end]
+                    print(f"      Context: ...{context}...")
+            else:
+                print(f"   ❓ {skill} in results but not found in text - this is a bug")
+    
     return unique_skills
 
 def calculate_semantic_similarity(text1: str, text2: str) -> float:
