@@ -105,7 +105,7 @@ def extract_skills(text: str) -> List[str]:
     
     found_skills = []
     
-    # Improved skill matching algorithm
+    # Improved skill matching algorithm with better precision
     for skill in skills_db:
         skill_lower = skill.lower()
         
@@ -114,24 +114,24 @@ def extract_skills(text: str) -> List[str]:
             found_skills.append(skill)
             continue
             
-        # Method 2: Check for skill as a substring (for multi-word skills)
-        if skill_lower in text_lower:
-            # Additional check to avoid false positives for short words
-            if len(skill) > 2 or skill_lower in ['js', 'ts', 'ui', 'ux', 'ml', 'ai']:
+        # Method 2: Check for skill as a substring (for multi-word skills only)
+        if ' ' in skill_lower:  # Only for multi-word skills like "Machine Learning"
+            if skill_lower in text_lower:
                 found_skills.append(skill)
                 continue
                 
-        # Method 3: Check for common variations
-        variations = [
-            skill_lower.replace(' ', ''),  # "Machine Learning" -> "machinelearning"
-            skill_lower.replace(' ', '-'),  # "Machine Learning" -> "machine-learning"
-            skill_lower.replace(' ', '_'),  # "Machine Learning" -> "machine_learning"
-        ]
-        
-        for variation in variations:
-            if variation in text_lower:
-                found_skills.append(skill)
-                break
+        # Method 3: Check for common variations (only for multi-word skills)
+        if ' ' in skill_lower:
+            variations = [
+                skill_lower.replace(' ', ''),  # "Machine Learning" -> "machinelearning"
+                skill_lower.replace(' ', '-'),  # "Machine Learning" -> "machine-learning"
+                skill_lower.replace(' ', '_'),  # "Machine Learning" -> "machine_learning"
+            ]
+            
+            for variation in variations:
+                if variation in text_lower:
+                    found_skills.append(skill)
+                    break
     
     # Remove duplicates while preserving order
     unique_skills = []
