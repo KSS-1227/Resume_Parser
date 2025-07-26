@@ -51,6 +51,14 @@ async def analyze_match(request: AnalysisRequest):
         print("Job description received:", request.job_description[:500])
         
         # Extract skills from resume and job
+        print("=== RESUME TEXT DEBUG ===")
+        print("Resume text length:", len(request.resume_text))
+        print("Resume text preview:", request.resume_text[:300])
+        
+        print("=== JOB DESCRIPTION DEBUG ===")
+        print("Job description length:", len(request.job_description))
+        print("Job description preview:", request.job_description[:300])
+        
         resume_skills = extract_skills(request.resume_text)
         job_skills = extract_skills(request.job_description)
         
@@ -114,8 +122,10 @@ async def analyze_match(request: AnalysisRequest):
             }
         
         # Generate comprehensive recommendations
-        strengths = generate_strengths(resume_skills, job_skills, matching_skills=list(set(resume_skills) & set(job_skills)))
-        improvements = generate_improvements(resume_skills, job_skills, missing_skills=list(set(job_skills) - set(resume_skills)))
+        matching_skills = list(set(resume_skills) & set(job_skills))
+        missing_skills = list(set(job_skills) - set(resume_skills))
+        strengths = generate_strengths(resume_skills, job_skills, matching_skills)
+        improvements = generate_improvements(resume_skills, job_skills, missing_skills)
         projects = generate_projects(job_skills, resume_skills)
         
         return {
@@ -125,6 +135,10 @@ async def analyze_match(request: AnalysisRequest):
             "keyword_density": int(keyword_density * 100),
             "semantic_similarity": int(semantic_similarity * 100),
             "is_complete_mismatch": False,
+            "required_skills": list(job_skills),
+            "your_skills": list(resume_skills),
+            "missing_skills": missing_skills,
+            "matching_skills": matching_skills,
             "strengths": strengths,
             "improvements": improvements,
             "suggested_projects": projects,

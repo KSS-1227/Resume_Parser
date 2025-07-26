@@ -23,6 +23,9 @@ except:
 
 def extract_skills(text: str) -> List[str]:
     """Extract skills from text using a comprehensive skill database"""
+    if not text or not text.strip():
+        return []
+    
     # Convert to lowercase for matching
     text_lower = text.lower()
     
@@ -43,7 +46,7 @@ def extract_skills(text: str) -> List[str]:
         
         # Cloud & DevOps
         "AWS", "Azure", "Google Cloud", "Docker", "Kubernetes", "Jenkins", "GitLab CI", "GitHub Actions",
-        "Terraform", "Ansible", "Chef", "Puppet", "Vagrant", "Vagrant", "Vagrant", "Vagrant",
+        "Terraform", "Ansible", "Chef", "Puppet", "Vagrant",
         
         # Mobile Development
         "React Native", "Flutter", "Xamarin", "Ionic", "Cordova", "PhoneGap", "iOS", "Android",
@@ -101,19 +104,45 @@ def extract_skills(text: str) -> List[str]:
     ]
     
     found_skills = []
+    
+    # Improved skill matching algorithm
     for skill in skills_db:
-        # Check for exact match (case insensitive)
-        if re.search(r'\b' + re.escape(skill.lower()) + r'\b', text_lower):
+        skill_lower = skill.lower()
+        
+        # Method 1: Check for word boundaries (most precise)
+        if re.search(r'\b' + re.escape(skill_lower) + r'\b', text_lower):
             found_skills.append(skill)
-        # Also check for variations (e.g., "React.js" matches "React")
-        elif skill.lower() in text_lower and len(skill) > 2:
-            found_skills.append(skill)
+            continue
+            
+        # Method 2: Check for skill as a substring (for multi-word skills)
+        if skill_lower in text_lower:
+            # Additional check to avoid false positives for short words
+            if len(skill) > 2 or skill_lower in ['js', 'ts', 'ui', 'ux', 'ml', 'ai']:
+                found_skills.append(skill)
+                continue
+                
+        # Method 3: Check for common variations
+        variations = [
+            skill_lower.replace(' ', ''),  # "Machine Learning" -> "machinelearning"
+            skill_lower.replace(' ', '-'),  # "Machine Learning" -> "machine-learning"
+            skill_lower.replace(' ', '_'),  # "Machine Learning" -> "machine_learning"
+        ]
+        
+        for variation in variations:
+            if variation in text_lower:
+                found_skills.append(skill)
+                break
     
     # Remove duplicates while preserving order
     unique_skills = []
     for skill in found_skills:
         if skill not in unique_skills:
             unique_skills.append(skill)
+    
+    # Debug logging
+    print(f"Text length: {len(text)}")
+    print(f"Text preview: {text[:200]}...")
+    print(f"Found skills: {unique_skills}")
     
     return unique_skills
 
