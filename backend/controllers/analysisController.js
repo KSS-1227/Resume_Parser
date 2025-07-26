@@ -35,6 +35,12 @@ export async function startAnalysis(req, res) {
       jobDescriptionText.substring(0, 200)
     );
 
+    // Debug resume text
+    console.log("=== RESUME TEXT DEBUG ===");
+    console.log("Resume text length:", resume.resumeText.length);
+    console.log("Resume text preview:", resume.resumeText.substring(0, 300));
+    console.log("Resume filename:", resume.filename);
+
     // Call Python AI service with real data
     const aiResult = await analyzeResume(
       resume.resumeText, // Real parsed resume text

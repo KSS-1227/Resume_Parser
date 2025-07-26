@@ -63,7 +63,10 @@ async def analyze_match(request: AnalysisRequest):
         job_skills = extract_skills(request.job_description)
         
         # Extract additional information
+        print("=== RESUME SECTIONS DEBUG ===")
+        print("Resume text for section extraction:", request.resume_text[:500])
         resume_sections = extract_resume_sections(request.resume_text)
+        print("Extracted sections:", resume_sections)
         job_requirements = extract_job_requirements(request.job_description)
         
         print("=== SKILL EXTRACTION ===")
@@ -235,7 +238,7 @@ def extract_text_from_docx(content: bytes) -> str:
         raise Exception(f"Failed to extract text from DOCX: {str(e)}")
 
 def extract_resume_sections(text: str) -> Dict[str, str]:
-    """Extract structured sections from resume"""
+    """Extract structured sections from resume with improved detection"""
     sections = {
         "contact": "",
         "summary": "",
@@ -245,27 +248,75 @@ def extract_resume_sections(text: str) -> Dict[str, str]:
         "certifications": ""
     }
     
-    # Simple section detection based on common headers
+    # Enhanced section detection with multiple patterns
     lines = text.split('\n')
     current_section = None
+    
+    # Define comprehensive section patterns
+    section_patterns = {
+        'contact': [
+            'contact', 'email', 'phone', 'address', 'location', 'linkedin', 'github',
+            'personal information', 'contact information', 'details'
+        ],
+        'summary': [
+            'summary', 'objective', 'profile', 'about', 'overview', 'introduction',
+            'professional summary', 'career objective', 'personal statement'
+        ],
+        'experience': [
+            'experience', 'work history', 'employment', 'work experience', 'professional experience',
+            'career history', 'employment history', 'work background', 'professional background'
+        ],
+        'education': [
+            'education', 'academic', 'degree', 'university', 'college', 'school',
+            'academic background', 'educational background', 'qualifications'
+        ],
+        'skills': [
+            'skills', 'technical skills', 'competencies', 'expertise', 'technologies',
+            'programming languages', 'tools', 'frameworks', 'languages', 'technical competencies'
+        ],
+        'certifications': [
+            'certifications', 'certificates', 'certified', 'accreditations', 'licenses',
+            'professional certifications', 'training', 'courses'
+        ]
+    }
     
     for line in lines:
         line_lower = line.lower().strip()
         
-        if any(keyword in line_lower for keyword in ['contact', 'email', 'phone']):
-            current_section = 'contact'
-        elif any(keyword in line_lower for keyword in ['summary', 'objective', 'profile']):
-            current_section = 'summary'
-        elif any(keyword in line_lower for keyword in ['experience', 'work history', 'employment']):
-            current_section = 'experience'
-        elif any(keyword in line_lower for keyword in ['education', 'academic']):
-            current_section = 'education'
-        elif any(keyword in line_lower for keyword in ['skills', 'technical skills']):
-            current_section = 'skills'
-        elif any(keyword in line_lower for keyword in ['certifications', 'certificates']):
-            current_section = 'certifications'
-        elif current_section and line.strip():
+        # Check if this line is a section header
+        for section, patterns in section_patterns.items():
+            if any(pattern in line_lower for pattern in patterns):
+                current_section = section
+                break
+        
+        # If we have a current section and the line has content, add it
+        if current_section and line.strip():
             sections[current_section] += line + "\n"
+    
+    # Post-processing: Try to extract sections even if headers weren't found
+    if not any(sections.values()):
+        # Fallback: try to identify sections by content patterns
+        text_lower = text.lower()
+        
+        # Contact section: look for email patterns
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        if re.search(email_pattern, text):
+            sections["contact"] = "Contact information found (email detected)"
+        
+        # Skills section: look for technical terms
+        skill_indicators = ['javascript', 'python', 'java', 'react', 'node.js', 'sql', 'git']
+        if any(skill in text_lower for skill in skill_indicators):
+            sections["skills"] = "Technical skills detected"
+        
+        # Experience section: look for job-related terms
+        experience_indicators = ['years', 'experience', 'worked', 'developed', 'managed', 'project']
+        if any(indicator in text_lower for indicator in experience_indicators):
+            sections["experience"] = "Work experience detected"
+        
+        # Education section: look for academic terms
+        education_indicators = ['university', 'college', 'degree', 'bachelor', 'master', 'phd']
+        if any(indicator in text_lower for indicator in education_indicators):
+            sections["education"] = "Education information detected"
     
     return sections
 
