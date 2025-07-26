@@ -36,6 +36,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const Dashboard = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeText, setResumeText] = useState("");
+  const [useManualResume, setUseManualResume] = useState(false);
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [useManualDescription, setUseManualDescription] = useState(false);
@@ -55,10 +57,19 @@ const Dashboard = () => {
   };
 
   const handleAnalysis = async () => {
-    if (!resumeFile) {
+    if (!useManualResume && !resumeFile) {
       toast({
-        title: "No resume uploaded",
-        description: "Please upload a resume first",
+        title: "No resume provided",
+        description: "Please upload a resume file or provide resume content manually",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (useManualResume && !resumeText.trim()) {
+      toast({
+        title: "No resume content",
+        description: "Please provide your resume content in the text area",
         variant: "destructive",
       });
       return;
@@ -87,26 +98,44 @@ const Dashboard = () => {
     try {
       console.log("Starting analysis with API URL:", API_BASE_URL);
       
-      // Upload resume
-      const formData = new FormData();
-      formData.append('resume', resumeFile);
+      let resumeId;
       
-      console.log("Uploading resume to:", `${API_BASE_URL}/api/resume/upload`);
-      
-      const uploadRes = await fetch(`${API_BASE_URL}/api/resume/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!uploadRes.ok) {
-        const errorText = await uploadRes.text();
-        console.error("Upload failed:", uploadRes.status, errorText);
-        throw new Error(`Upload failed: ${uploadRes.status} ${errorText}`);
+      if (useManualResume) {
+        // Use manual resume text
+        console.log("Using manual resume text");
+        resumeId = `manual_${Date.now()}`;
+        
+        // Store manual resume text in global storage (simulate file upload)
+        if (!global.resumes) global.resumes = new Map();
+        global.resumes.set(resumeId, {
+          id: resumeId,
+          filename: "manual_resume.txt",
+          filePath: "",
+          parsedData: {},
+          resumeText: resumeText,
+        });
+      } else {
+        // Upload resume file
+        const formData = new FormData();
+        formData.append('resume', resumeFile);
+        
+        console.log("Uploading resume to:", `${API_BASE_URL}/api/resume/upload`);
+        
+        const uploadRes = await fetch(`${API_BASE_URL}/api/resume/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error("Upload failed:", uploadRes.status, errorText);
+          throw new Error(`Upload failed: ${uploadRes.status} ${errorText}`);
+        }
+        
+        const uploadData = await uploadRes.json();
+        console.log("Upload response:", uploadData);
+        resumeId = uploadData.resumeId;
       }
-      
-      const uploadData = await uploadRes.json();
-      console.log("Upload response:", uploadData);
-      const { resumeId } = uploadData;
 
       // Analyze resume
       console.log("Starting analysis for resumeId:", resumeId);
@@ -205,33 +234,73 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Upload Resume
+                Resume Information
               </CardTitle>
               <CardDescription>
-                Upload your resume in PDF or Word format
+                Upload your resume or provide resume content manually
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <Label htmlFor="resume-upload" className="cursor-pointer">
-                    <span className="text-sm text-gray-600">
-                      Click to upload or drag and drop
-                    </span>
-                    <Input
-                      id="resume-upload"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </Label>
+                {/* Toggle between File Upload and Manual Text */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={!useManualResume ? "default" : "outline"}
+                    onClick={() => setUseManualResume(false)}
+                    className="flex-1"
+                  >
+                    Upload File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={useManualResume ? "default" : "outline"}
+                    onClick={() => setUseManualResume(true)}
+                    className="flex-1"
+                  >
+                    Manual Text
+                  </Button>
                 </div>
-                {resumeFile && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    {resumeFile.name}
+
+                {/* File Upload */}
+                {!useManualResume && (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <Label htmlFor="resume-upload" className="cursor-pointer">
+                      <span className="text-sm text-gray-600">
+                        Click to upload or drag and drop
+                      </span>
+                      <Input
+                        id="resume-upload"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </Label>
+                    {resumeFile && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
+                        <CheckCircle className="h-4 w-4" />
+                        {resumeFile.name}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Manual Text Input */}
+                {useManualResume && (
+                  <div className="space-y-2">
+                    <Label htmlFor="resume-text">Resume Content</Label>
+                    <textarea
+                      id="resume-text"
+                      value={resumeText}
+                      onChange={(e) => setResumeText(e.target.value)}
+                      placeholder="Paste your resume content here... Include your skills, experience, education, etc."
+                      className="w-full h-48 p-3 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Include your contact information, skills, work experience, education, and any certifications.
+                    </p>
                   </div>
                 )}
               </div>

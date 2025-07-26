@@ -12,32 +12,82 @@ export async function uploadResume(req, res) {
 
       // Try to extract text from the file
       if (originalname && originalname.toLowerCase().endsWith(".pdf")) {
+        console.log("Attempting PDF text extraction...");
+
         try {
-          // Use pdf-parse with error handling
+          // Method 1: Use pdf-parse with better error handling
           const pdfParse = (await import("pdf-parse")).default;
-          const pdfData = await pdfParse(dataBuffer);
+          const pdfData = await pdfParse(dataBuffer, {
+            // Add options to improve parsing
+            normalizeWhitespace: true,
+            disableCombineTextItems: false,
+          });
+
           resumeText = pdfData.text;
           console.log(
-            "Successfully extracted PDF text, length:",
+            "Successfully extracted PDF text using pdf-parse, length:",
             resumeText.length
           );
-        } catch (pdfError) {
-          console.error(
-            "PDF parsing failed, trying alternative method:",
-            pdfError.message
-          );
 
-          // Try alternative PDF parsing
+          // Validate extracted text
+          if (!resumeText || resumeText.trim().length < 10) {
+            throw new Error("Extracted text is too short or empty");
+          }
+        } catch (pdfError) {
+          console.error("PDF parsing with pdf-parse failed:", pdfError.message);
+
+          // Method 2: Try with different options
           try {
-            const pdf2pic = (await import("pdf2pic")).default;
-            // This is a fallback - in a real implementation, you'd use a different PDF parser
-            resumeText = `Resume: ${originalname} - PDF parsing failed, please try a different format or contact support.`;
-          } catch (altError) {
+            const pdfParse = (await import("pdf-parse")).default;
+            const pdfData = await pdfParse(dataBuffer, {
+              normalizeWhitespace: false,
+              disableCombineTextItems: true,
+            });
+
+            resumeText = pdfData.text;
+            console.log(
+              "Successfully extracted PDF text with alternative options, length:",
+              resumeText.length
+            );
+          } catch (pdfError2) {
             console.error(
               "Alternative PDF parsing also failed:",
-              altError.message
+              pdfError2.message
             );
-            resumeText = `Resume: ${originalname} - Unable to extract text from PDF. Please ensure the file is not corrupted or password-protected.`;
+
+            // Method 3: Try to extract basic text using a different approach
+            try {
+              // Try to read as text file (some PDFs can be read as text)
+              const textContent = dataBuffer.toString("utf8");
+              if (textContent.length > 100 && textContent.includes(" ")) {
+                resumeText = textContent;
+                console.log(
+                  "Extracted text using direct buffer reading, length:",
+                  resumeText.length
+                );
+              } else {
+                throw new Error("Direct buffer reading failed");
+              }
+            } catch (bufferError) {
+              console.error("All PDF parsing methods failed");
+
+              // Provide helpful error message
+              resumeText = `Resume: ${originalname}
+
+PDF parsing failed. This could be due to:
+1. Password-protected PDF
+2. Scanned PDF (image-based)
+3. Corrupted PDF file
+4. PDF with special formatting
+
+Please try:
+- Converting to DOCX format
+- Saving as plain text
+- Using a different PDF file
+- Ensuring the PDF is not password-protected
+
+For now, please provide a manual description of your skills and experience.`;
+            }
           }
         }
       } else if (originalname && originalname.toLowerCase().endsWith(".docx")) {
